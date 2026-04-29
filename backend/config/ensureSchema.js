@@ -20,6 +20,28 @@ export async function ensureFeatureColumns(sequelize) {
   await sequelize.query(
     "ALTER TABLE settings ADD COLUMN IF NOT EXISTS is_2fa_enabled BOOLEAN NOT NULL DEFAULT false"
   );
+  await sequelize.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'settings_settings_id_fkey'
+          AND conrelid = 'settings'::regclass
+      ) THEN
+        ALTER TABLE settings DROP CONSTRAINT settings_settings_id_fkey;
+      END IF;
+    END $$;
+  `);
+  await sequelize.query(
+    "ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_user_id_fkey"
+  );
+  await sequelize.query(
+    "ALTER TABLE settings ADD CONSTRAINT settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE NOT VALID"
+  );
+  await sequelize.query(
+    "CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)"
+  );
   await sequelize.query(
     "ALTER TABLE otp_login ADD COLUMN IF NOT EXISTS used BOOLEAN NOT NULL DEFAULT false"
   );

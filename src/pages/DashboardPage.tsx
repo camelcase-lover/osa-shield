@@ -462,6 +462,21 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        {scanNotice && (
+          <div className={`mb-4 rounded-xl border p-4 ${noticeClassName}`}>
+            <div className="flex items-start gap-3">
+              <NoticeIcon className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="min-w-0">
+                <div className="font-semibold text-foreground">{scanNotice.title}</div>
+                <p className="mt-1 text-sm leading-6 text-foreground/85">{scanNotice.message}</p>
+                {scanNotice.details && (
+                  <p className="mt-2 text-sm leading-6 text-foreground/75">{scanNotice.details}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeAnalyzerTab === 'text' ? (
           <Textarea
             placeholder="Paste suspicious message content here..."
@@ -509,21 +524,6 @@ export default function DashboardPage() {
               : 'Message analysis checks for scam patterns and summarizes the strongest signals in a readable verdict.'}
           </p>
         </div>
-
-        {scanNotice && (
-          <div className={`mt-5 rounded-xl border p-4 ${noticeClassName}`}>
-            <div className="flex items-start gap-3">
-              <NoticeIcon className="mt-0.5 h-5 w-5 shrink-0" />
-              <div className="min-w-0">
-                <div className="font-semibold text-foreground">{scanNotice.title}</div>
-                <p className="mt-1 text-sm leading-6 text-foreground/85">{scanNotice.message}</p>
-                {scanNotice.details && (
-                  <p className="mt-2 text-sm leading-6 text-foreground/75">{scanNotice.details}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {result && tone && (
