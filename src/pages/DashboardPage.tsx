@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -115,13 +115,6 @@ type UrlCheckResponse = {
   threats?: string[];
   expireTime?: string;
   raw?: unknown;
-};
-
-type ScanNotice = {
-  tone: 'success' | 'warning' | 'error';
-  title: string;
-  message: string;
-  details?: string;
 };
 
 type DashboardUrlDetails = NonNullable<ScamAnalysisResponse['url_details']>;
@@ -281,24 +274,15 @@ export default function DashboardPage() {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<ScamAnalysisResponse | null>(null);
-  const [scanNotice, setScanNotice] = useState<ScanNotice | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [lastAnalyzedTab, setLastAnalyzedTab] = useState<'text' | 'url' | 'password' >('text');
-
-  useEffect(() => {
-    if (!result) return;
-
-    resultRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }, [result]);
 
   const handleAnalyze = async () => {
     if (!input.trim()) return;
 
     setIsAnalyzing(true);
     setResult(null);
-    setScanNotice(null);
+    setAnalysisError(null);
     setLastAnalyzedTab(activeAnalyzerTab);
 
     try {
@@ -312,22 +296,6 @@ export default function DashboardPage() {
         const analysis = buildPasswordAnalysis(pwnedResult);
 
         setResult(analysis);
-        setScanNotice({
-          tone: pwnedResult.breached ? 'warning' : 'success',
-          title: pwnedResult.breached ? 'Password breach found' : 'No known password breach found',
-          message: description,
-        });
-
-        if (pwnedResult.breached) {
-          toast.warning('Password breach found', {
-            description,
-          });
-        } else {
-          toast.success('No known password breach found', {
-            description,
-          });
-        }
-
         return;
       }
 
@@ -342,12 +310,6 @@ export default function DashboardPage() {
         const analysis = buildUrlCheckAnalysis(urlCheckResult, urlToCheck);
 
         setResult(analysis);
-        setScanNotice({
-          tone: analysis.is_scam ? 'warning' : 'success',
-          title: analysis.is_scam ? 'Threat detected by URL check' : 'URL check completed',
-          message: analysis.verdict_summary,
-          details: analysis.explanation,
-        });
         await checkSession();
 
         if (analysis.is_scam) {
@@ -368,14 +330,6 @@ export default function DashboardPage() {
       });
 
       setResult(analysis);
-      setScanNotice({
-        tone: analysis.is_scam ? 'warning' : 'success',
-        title: analysis.is_scam ? 'Threat detected' : 'Analysis completed',
-        message: analysis.is_scam
-          ? 'The scan is private until you post it from your profile.'
-          : 'No strong scam signal was found in this message.',
-        details: analysis.explanation || analysis.verdict_summary,
-      });
       await checkSession();
 
       if (analysis.is_scam) {
@@ -385,11 +339,7 @@ export default function DashboardPage() {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Analysis failed.';
-      setScanNotice({
-        tone: 'error',
-        title: 'Analysis failed',
-        message,
-      });
+      setAnalysisError(message);
       toast.error(message);
     } finally {
       setIsAnalyzing(false);
@@ -401,14 +351,31 @@ export default function DashboardPage() {
   const recommendations = result ? buildRecommendations(result, analyzedTab) : [];
   const tone = result ? resultTone(result) : null;
   const ToneIcon = tone?.icon ?? Shield;
-  const NoticeIcon =
-    scanNotice?.tone === 'success' ? CheckCircle : scanNotice?.tone === 'error' ? AlertTriangle : ShieldAlert;
-  const noticeClassName =
-    scanNotice?.tone === 'success'
+  const inlineTone = analysisError
+    ? 'error'
+    : result?.is_scam || result?.risk_level === 'medium'
+    ? 'warning'
+    : result
+    ? 'success'
+    : null;
+  const InlineIcon = inlineTone === 'success' ? CheckCircle : inlineTone === 'error' ? AlertTriangle : ShieldAlert;
+  const inlineClassName =
+    inlineTone === 'success'
       ? 'border-success/30 bg-success/10 text-success'
-      : scanNotice?.tone === 'error'
+      : inlineTone === 'error'
       ? 'border-destructive/30 bg-destructive/10 text-destructive'
       : 'border-warning/30 bg-warning/10 text-warning';
+  const inlineTitle = analysisError
+    ? 'Analysis failed'
+    : result
+    ? result.verdict_title
+    : '';
+  const inlineMessage = analysisError
+    ? analysisError
+    : result
+    ? result.verdict_summary
+    : '';
+  const inlineDetails = result?.explanation || null;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -462,15 +429,20 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {scanNotice && (
-          <div className={`mb-4 rounded-xl border p-4 ${noticeClassName}`}>
+        {(result || analysisError) && (
+          <div className={`mb-4 rounded-xl border p-4 ${inlineClassName}`}>
             <div className="flex items-start gap-3">
-              <NoticeIcon className="mt-0.5 h-5 w-5 shrink-0" />
+              <InlineIcon className="mt-0.5 h-5 w-5 shrink-0" />
               <div className="min-w-0">
-                <div className="font-semibold text-foreground">{scanNotice.title}</div>
-                <p className="mt-1 text-sm leading-6 text-foreground/85">{scanNotice.message}</p>
-                {scanNotice.details && (
-                  <p className="mt-2 text-sm leading-6 text-foreground/75">{scanNotice.details}</p>
+                <div className="font-semibold text-foreground">{inlineTitle}</div>
+                <p className="mt-1 text-sm leading-6 text-foreground/85">{inlineMessage}</p>
+                {inlineDetails && (
+                  <p className="mt-2 text-sm leading-6 text-foreground/75">{inlineDetails}</p>
+                )}
+                {result?.analysis_mode === 'text' && result.is_scam && (
+                  <p className="mt-3 text-sm leading-6 text-foreground/75">
+                    This scan is private. Go to your profile if you want to control whether it is posted to the community.
+                  </p>
                 )}
               </div>
             </div>

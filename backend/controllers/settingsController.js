@@ -8,17 +8,25 @@ export const twoFactorSettingController = async(request, reply) => {
             return reply.code(401).send({message: "Unauthorized"});
         }
 
-        const [setting] = await Setting.findOrCreate({
+        const setting = await Setting.findOne({
             where: {user_id: userId},
-            defaults: {
-                user_id: userId,
-                is_2fa_enabled: false,
-            },
         });
 
         if (request.method === "GET") {
             return reply.code(200).send({
-                is_2fa_enabled: setting.is_2fa_enabled
+                is_2fa_enabled: Boolean(setting?.is_2fa_enabled)
+            });
+        }
+
+        if (!setting) {
+            const newSetting = await Setting.create({
+                user_id: userId,
+                is_2fa_enabled: true,
+            });
+
+            return reply.code(200).send({
+                message: "2FA has been enabled",
+                is_2fa_enabled: newSetting.is_2fa_enabled
             });
         }
 
