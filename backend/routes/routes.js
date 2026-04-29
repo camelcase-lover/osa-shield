@@ -1,6 +1,12 @@
 import requireAuthentication from "../middleware/requireAuthentication.js";
 import { checkPassword } from '../services/passwordCheck.js';
 import requireDatabaseReady from "../middleware/requireDatabaseReady.js";
+import {normalize} from "../utils/normalize.js";
+import {hash} from "../utils/sha256.js";
+//redis connection
+import { createClient } from "redis";
+
+
 import {
   loginController,
   logoutController,
@@ -130,23 +136,33 @@ export default async function routes(fastify) {
     });
   }
 
-fastify.get("/urlCheck", async (request, reply) => {
-  try {
-    const { url } = request.query;       
+fastify.post("/urlCheck", async (request, reply) => {
+  const { url } = request.body;
+  const client = createClient();
+  await client.connect();
+  const URL_SET = "phish:urls";
+  const DOMAIN_SET = "phish:domains";
 
-    if (!url) {
-      return reply.code(400).send({ error: "URL query parameter is required" });
-    }
-
-    const result = await urlCheck(url);
-    return result;
-  } catch (e) {
-    console.error(e);
-    //usitume the error message to users just say internal server error and do console log for debugging p boy
-    // return reply.code(500).send({ error: e.message });
-    return reply.code(500).send({ message: "Internal server error"});
+  const norm = normalize(url);
+  if (!norm) {
+    return reply.code(400).send({ error: "Invalid URL" });
   }
+
+  const urlHash = hash(norm.full);
+
+  // check exact match
+  if (await client.sIsMember(URL_SET, urlHash)) {
+    return { safe: false, reason: "exact_match" };
+  }
+
+  // check domain match
+  if (await client.sIsMember(DOMAIN_SET, norm.domain)) {
+    return { safe: false, reason: "domain_match" };
+  }
+
+  return { safe: true };
 });
+
 fastify.post('/checkPassword', async (request, reply) => {
     try {
         const { password } = request.body;
