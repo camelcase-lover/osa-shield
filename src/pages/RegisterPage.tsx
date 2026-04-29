@@ -21,6 +21,16 @@ export default function RegisterPage() {
 
     const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{12,}$/;
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const nameRegex = /^[a-zA-Z\s]+$/;
+
+    if(!nameRegex.test(name.trim())){
+      return toast.error("Eww! Only letters and spaces.");
+    }
+    if(!emailRegex.test(email)){
+      return toast.error("Please provide valid email address");
+    }
     if(password && !strongPasswordRegex.test(password) ){ 
       toast.error("Password must be at least 12 characters and include uppercase, lowercase, numbers, and special characters.");
       return;

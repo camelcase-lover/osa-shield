@@ -15,6 +15,12 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!emailRegex.test(email)){
+      return toast.error("Please put valid email address");
+    }
+    
     try {
       await login(email, password);
       toast.success('Welcome back, Agent.');
