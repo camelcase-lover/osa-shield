@@ -81,6 +81,29 @@ function buildResetPassordMail(email, redirectLink){
   }
 }
 
+function buildOtpMail(mail, code){
+    const html = `
+    <html>
+      <body>
+        <p>Hello,</p>
+        <p>You need this otp to continue login</p>
+        <p>It will expire in 5 mins</p>
+        <p>${code}</p>
+        <p>If you never initiated the code pls contact us for us to take action</p>
+        <p>Importance of two factor authentication it protects account over suspicious login.</p>
+        <p>Thanks for helping continue shape the community</p>
+      </body>
+    </html>
+    `;
+
+    return {
+      to: mail,
+      subject: "OSA 2FA LOGIN OTP",
+      text: `He is you 5 mins code ${code}`,
+      html,
+    }
+}
+
 export async function sendConfirmEmail(recipientEmail, confirmLink) {
   const message = buildConfirmEmailMessage(recipientEmail, confirmLink);
 
@@ -90,6 +113,13 @@ export async function sendConfirmEmail(recipientEmail, confirmLink) {
 export async function sendResetPasswordMail(email, redirectLink) {
   const message = buildResetPassordMail(email, redirectLink);
   
-  return await sendEmails(message)
+  return await sendEmails(message);
+  
+}
+
+export async function sendOtpMail(mail, code) {
+  const message = buildOtpMail(mail, code);
+  
+  return await sendOtpMail(message);
   
 }
