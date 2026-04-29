@@ -286,6 +286,9 @@ export default function DashboardPage() {
     setLastAnalyzedTab(activeAnalyzerTab);
 
     try {
+
+      let analysis: ScamAnalysisResponse;
+
       if (activeAnalyzerTab === 'password') {
         const pwnedResult = await apiFetch<PasswordCheckResponse>('/checkPassword', {
           method: 'POST',
@@ -315,15 +318,18 @@ export default function DashboardPage() {
             content: input.trim(),
           }),
         });
-        setResult(analysis);
+        
       }
 
-      await checkSession();
+      setResult(analysis);
+      
       if(result?.is_scam || (result && result.risk_level === 'high')){
         toast.warning(result.verdict_title || 'Threat detected. The scan is private until you post it from your profile.');
       }else {
         toast.success(result?.verdict_title || 'Analysis completed.');
       }
+
+      await checkSession();
 
       // if (activeAnalyzerTab === 'url') {
       //   const urlToCheck = normalizeUrlForCheck(input);
