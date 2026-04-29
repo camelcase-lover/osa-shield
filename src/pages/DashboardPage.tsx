@@ -297,46 +297,72 @@ export default function DashboardPage() {
 
         setResult(analysis);
         return;
-      }
-
-      if (activeAnalyzerTab === 'url') {
+      } else if (activeAnalyzerTab == 'url'){
         const urlToCheck = normalizeUrlForCheck(input);
         const urlCheckResult = await apiFetch<UrlCheckResponse>(
           `/urlCheck?url=${encodeURIComponent(urlToCheck)}`,
-          {
-            method: 'GET',
-          }
+          {method: 'GET'}
         );
+
         const analysis = buildUrlCheckAnalysis(urlCheckResult, urlToCheck);
-
         setResult(analysis);
-        await checkSession();
-
-        if (analysis.is_scam) {
-          toast.warning('Threat detected by URL check.');
-        } else {
-          toast.success('URL check completed.');
-        }
-
-        return;
+      }
+      else {
+        const analysis = await apiFetch<ScamAnalysisResponse>('/scams/analyze', {
+          method: 'POST',
+          body: JSON.stringify({
+            inputType: activeAnalyzerTab,
+            content: input.trim(),
+          }),
+        });
+        setResult(analysis);
       }
 
-      const analysis = await apiFetch<ScamAnalysisResponse>('/scams/analyze', {
-        method: 'POST',
-        body: JSON.stringify({
-          inputType: activeAnalyzerTab,
-          content: input.trim(),
-        }),
-      });
-
-      setResult(analysis);
       await checkSession();
-
-      if (analysis.is_scam) {
-        toast.warning('Threat detected. The scan is private until you post it from your profile.');
-      } else {
-        toast.success('Analysis completed.');
+      if(result?.is_scam || (result && result.risk_level === 'high')){
+        toast.warning(result.verdict_title || 'Threat detected. The scan is private until you post it from your profile.');
+      }else {
+        toast.success(result?.verdict_title || 'Analysis completed.');
       }
+
+      // if (activeAnalyzerTab === 'url') {
+      //   const urlToCheck = normalizeUrlForCheck(input);
+      //   const urlCheckResult = await apiFetch<UrlCheckResponse>(
+      //     `/urlCheck?url=${encodeURIComponent(urlToCheck)}`,
+      //     {
+      //       method: 'GET',
+      //     }
+      //   );
+      //   const analysis = buildUrlCheckAnalysis(urlCheckResult, urlToCheck);
+
+      //   setResult(analysis);
+      //   await checkSession();
+
+      //   if (analysis.is_scam) {
+      //     toast.warning('Threat detected by URL check.');
+      //   } else {
+      //     toast.success('URL check completed.');
+      //   }
+
+      //   return;
+      // }
+
+      // const analysis = await apiFetch<ScamAnalysisResponse>('/scams/analyze', {
+      //   method: 'POST',
+      //   body: JSON.stringify({
+      //     inputType: activeAnalyzerTab,
+      //     content: input.trim(),
+      //   }),
+      // });
+
+      // setResult(analysis);
+      // await checkSession();
+
+      // if (analysis.is_scam) {
+      //   toast.warning('Threat detected. The scan is private until you post it from your profile.');
+      // } else {
+      //   toast.success('Analysis completed.');
+      // }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Analysis failed.';
       setAnalysisError(message);
@@ -439,11 +465,11 @@ export default function DashboardPage() {
                 {inlineDetails && (
                   <p className="mt-2 text-sm leading-6 text-foreground/75">{inlineDetails}</p>
                 )}
-                {result?.analysis_mode === 'text' && result.is_scam && (
+                {/* {result?.analysis_mode === 'text' && result.is_scam && (
                   <p className="mt-3 text-sm leading-6 text-foreground/75">
                     This scan is private. Go to your profile if you want to control whether it is posted to the community.
                   </p>
-                )}
+                )} */}
               </div>
             </div>
           </div>
