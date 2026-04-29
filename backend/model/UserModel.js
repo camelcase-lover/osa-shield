@@ -79,6 +79,12 @@ export default (sequelize, DataTypes) => {
       as: "threads",
       onDelete: "CASCADE",
     });
+
+    User.hasMany(models.Setting, {
+      foreignKey: "settings_id",
+      as: "settings",
+      onDelete: "CASCADE",
+    });
   };
 
   return User;
