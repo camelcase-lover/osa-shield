@@ -230,6 +230,42 @@ function buildUrlCheckAnalysis(urlCheckResult: UrlCheckResponse, urlToCheck: str
   };
 }
 
+function buildPasswordAnalysis(passwordCheckResult: PasswordCheckResponse): ScamAnalysisResponse {
+  const count = Number(passwordCheckResult.count ?? 0);
+  const isBreached = Boolean(passwordCheckResult.breached);
+  const description = cleanPasswordCheckMessage(passwordCheckResult);
+
+  return {
+    prediction: isBreached ? 'spam' : 'ham',
+    spam_probability: isBreached ? 0.9 : 0.05,
+    threshold: 0.5,
+    triggers: isBreached
+      ? [
+          {
+            key: 'known_password_breach',
+            label: 'Known password breach',
+            icon: '!',
+            description,
+            matches: [`${count.toLocaleString()} breach match${count === 1 ? '' : 'es'}`],
+          },
+        ]
+      : [],
+    explanation: description,
+    is_scam: isBreached,
+    risk_level: isBreached ? 'high' : 'low',
+    verdict_title: isBreached ? 'Password exposed' : 'No known breach found',
+    verdict_summary: isBreached
+      ? 'This password appears in known breach data.'
+      : 'This password was not found in the checked breach data.',
+    analysis_mode: 'password',
+    url_details: null,
+    scan_id: '',
+    stored_scam_id: null,
+    stored_in_community: false,
+    location: null,
+  };
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const resultRef = useRef<HTMLDivElement | null>(null);
@@ -264,6 +300,9 @@ export default function DashboardPage() {
         });
 
         const description = cleanPasswordCheckMessage(pwnedResult);
+        const analysis = buildPasswordAnalysis(pwnedResult);
+
+        setResult(analysis);
 
         if (pwnedResult.breached) {
           toast.warning('Password breach found', {
@@ -454,7 +493,11 @@ export default function DashboardPage() {
                     {result.prediction}
                   </span>
                   <span className="rounded-full border border-border/60 bg-secondary/60 px-3 py-1 text-sm text-foreground">
-                    {analyzedTab === 'url' ? 'URL analysis' : 'Message analysis'}
+                    {analyzedTab === 'url'
+                      ? 'URL analysis'
+                      : analyzedTab === 'password'
+                      ? 'Password check'
+                      : 'Message analysis'}
                   </span>
                 </div>
 
@@ -517,9 +560,13 @@ export default function DashboardPage() {
                   <div className="mt-4 w-full rounded-xl border border-border/60 bg-secondary/50 p-4 text-sm text-muted-foreground">
                     {result.is_scam ? (
                       <div className="space-y-2">
-                        <div className="font-semibold text-foreground">Private scan saved</div>
+                        <div className="font-semibold text-foreground">
+                          {analyzedTab === 'password' || analyzedTab === 'url' ? 'Visible for this session' : 'Private scan saved'}
+                        </div>
                         <div>
-                          This flagged sample was saved to your activity history. You choose whether to post it to the community.
+                          {analyzedTab === 'password' || analyzedTab === 'url'
+                            ? 'This result is shown here for review and is not posted to the community.'
+                            : 'This flagged sample was saved to your activity history. You choose whether to post it to the community.'}
                         </div>
                       </div>
                     ) : (
@@ -605,9 +652,11 @@ export default function DashboardPage() {
               </ul>
 
               {result.is_scam ? (
-                <Button variant="destructive" className="mt-5 w-full" onClick={() => navigate('/profile')}>
-                  <AlertTriangle className="h-4 w-4" /> Post from Profile
-                </Button>
+                analyzedTab === 'text' ? (
+                  <Button variant="destructive" className="mt-5 w-full" onClick={() => navigate('/profile')}>
+                    <AlertTriangle className="h-4 w-4" /> Post from Profile
+                  </Button>
+                ) : null
               ) : (
                 <Button variant="cyber-outline" className="mt-5 w-full" onClick={() => navigate('/report')}>
                   <FileText className="h-4 w-4" /> Report Manually

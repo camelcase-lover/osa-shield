@@ -55,7 +55,7 @@ export type ScamAnalysisResponse = {
   risk_level: 'low' | 'medium' | 'high';
   verdict_title: string;
   verdict_summary: string;
-  analysis_mode: 'text' | 'url';
+  analysis_mode: 'text' | 'url' | 'password';
   url_details: UrlAnalysisDetails | null;
   scan_id: string;
   stored_scam_id: string | null;

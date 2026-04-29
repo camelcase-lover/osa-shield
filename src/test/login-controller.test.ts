@@ -7,7 +7,11 @@ const updateUser = vi.fn();
 const updateConfirmEmail = vi.fn();
 const createConfirmEmail = vi.fn();
 const sendConfirmEmail = vi.fn();
+const sendOtpMail = vi.fn();
 const comparePassword = vi.fn();
+const findSetting = vi.fn();
+const updateOtp = vi.fn();
+const createOtp = vi.fn();
 
 vi.mock("../../backend/config/db.js", () => ({
   User: {
@@ -23,11 +27,20 @@ vi.mock("../../backend/config/db.js", () => ({
     update: updateConfirmEmail,
     create: createConfirmEmail,
   },
+  Setting: {
+    findOne: findSetting,
+  },
+  Otp: {
+    update: updateOtp,
+    create: createOtp,
+  },
 }));
 
 vi.mock("../../backend/data/emailSender.js", () => ({
   isEmailServiceConfigured: () => true,
   sendConfirmEmail,
+  sendOtpMail,
+  sendResetPasswordMail: vi.fn(),
 }));
 
 vi.mock("bcrypt", () => ({
@@ -60,7 +73,12 @@ describe("loginController", () => {
     updateConfirmEmail.mockReset();
     createConfirmEmail.mockReset();
     sendConfirmEmail.mockReset();
+    sendOtpMail.mockReset();
     comparePassword.mockReset();
+    findSetting.mockReset();
+    updateOtp.mockReset();
+    createOtp.mockReset();
+    findSetting.mockResolvedValue(null);
   });
 
   it("reissues confirmation email for valid unverified logins without waiting on SMTP", async () => {
@@ -149,5 +167,53 @@ describe("loginController", () => {
     );
     expect(request.session.userId).toBe("user-123");
     expect(sendConfirmEmail).not.toHaveBeenCalled();
+  });
+
+  it("sends an OTP and does not create a session when two-factor authentication is enabled", async () => {
+    findOne.mockResolvedValue({
+      user_id: "user-123",
+      email: "secure@example.com",
+      password: "hashed-password",
+      is_verified: true,
+    });
+    comparePassword.mockResolvedValue(true);
+    findSetting.mockResolvedValue({ is_2fa_enabled: true });
+    updateOtp.mockResolvedValue([0]);
+    createOtp.mockResolvedValue({});
+    sendOtpMail.mockImplementation(() => new Promise(() => {}));
+
+    const { loginController } = await import("../../backend/controllers/userController.js");
+
+    const reply = createReply();
+    const request = {
+      body: {
+        identifier: "secure@example.com",
+        password: "secret123",
+      },
+      session: {},
+      headers: {},
+      ip: "127.0.0.1",
+      log: {
+        error: vi.fn(),
+      },
+    };
+
+    await expect(
+      Promise.race([
+        loginController(request, reply),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("loginController timed out")), 50);
+        }),
+      ])
+    ).resolves.toBe(reply);
+
+    expect(reply.statusCode).toBe(202);
+    expect(reply.payload).toEqual({
+      message: "Two-factor code sent to your email.",
+      requiresTwoFactor: true,
+      email: "secure@example.com",
+    });
+    expect(sendOtpMail).toHaveBeenCalledWith("secure@example.com", expect.stringMatching(/^\d{6}$/));
+    expect(request.session.userId).toBeUndefined();
   });
 });

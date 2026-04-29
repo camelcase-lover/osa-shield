@@ -120,6 +120,6 @@ export async function sendResetPasswordMail(email, redirectLink) {
 export async function sendOtpMail(mail, code) {
   const message = buildOtpMail(mail, code);
   
-  return await sendOtpMail(message);
+  return await sendEmails(message);
   
 }

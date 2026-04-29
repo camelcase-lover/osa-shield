@@ -74,10 +74,47 @@ export default function ProfilePage() {
 
 const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 const [mfaEnabled, setMfaEnabled] = useState(false);
+const [isMfaSaving, setIsMfaSaving] = useState(false);
 
-const toggleMFA = () => {
-  setMfaEnabled(!mfaEnabled);
-  toast.success(`MFA ${!mfaEnabled ? 'Enabled' : 'Disabled'}`);
+useEffect(() => {
+  let ignore = false;
+
+  const loadTwoFactorSetting = async () => {
+    try {
+      const data = await apiFetch<{ is_2fa_enabled: boolean }>('/two-factor');
+      if (!ignore) {
+        setMfaEnabled(Boolean(data.is_2fa_enabled));
+      }
+    } catch (error) {
+      if (!ignore) {
+        toast.error(error instanceof Error ? error.message : 'Could not load MFA setting.');
+      }
+    }
+  };
+
+  void loadTwoFactorSetting();
+
+  return () => {
+    ignore = true;
+  };
+}, []);
+
+const toggleMFA = async () => {
+  setIsMfaSaving(true);
+
+  try {
+    const data = await apiFetch<{ message: string; is_2fa_enabled: boolean }>('/two-factor', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+
+    setMfaEnabled(Boolean(data.is_2fa_enabled));
+    toast.success(data.message);
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Could not update MFA setting.');
+  } finally {
+    setIsMfaSaving(false);
+  }
 };
 
 
@@ -122,6 +159,7 @@ const toggleMFA = () => {
 
                 <button
                   onClick={toggleMFA}
+                  disabled={isMfaSaving}
                   className={`relative h-6 w-11 rounded-full transition-colors duration-200 focus:outline-none ${
                     mfaEnabled ? 'bg-primary' : 'bg-secondary'
                   }`}

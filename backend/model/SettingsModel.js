@@ -10,13 +10,13 @@ export default (sequelize, DataTypes) => {
             user_id: {
                 type: DataTypes.UUID,
                 allowNull: false,
-                reference: {
+                references: {
                     model: "users",
                     key: "user_id"
                 }
             },
             is_2fa_enabled: {
-                type: DataTypes.HOOLEAM,
+                type: DataTypes.BOOLEAN,
                 allowNull: false,
                 defaultValue: false,
             },

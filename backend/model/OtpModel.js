@@ -21,6 +21,11 @@ export default (sequelize, DataTypes)  => {
                 type: DataTypes.STRING(6),
                 allowNull: false, 
             },
+            used: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false,
+            },
             expires_at: {
                 type: DataTypes.DATE,
                 allowNull: false,

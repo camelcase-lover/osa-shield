@@ -7,6 +7,7 @@ import {
   meController,
   registerController,
   verifyEmailController,
+  verifyLoginOtpController,
   sendResetPasswordController,
   resetPasswordPasswordController
 } from "../controllers/userController.js";
@@ -95,6 +96,7 @@ export default async function routes(fastify) {
     "/auth/register",
     "/auth/verify-email",
     "/auth/login",
+    "/auth/login/verify-otp",
     "/auth/logout",
     "/auth/me",
     "/scams",
@@ -193,6 +195,13 @@ fastify.post('/checkPassword', async (request, reply) => {
       preHandler: requireDatabaseReady,
     },
     loginController
+  );
+  fastify.post(
+    "/auth/login/verify-otp",
+    {
+      preHandler: requireDatabaseReady,
+    },
+    verifyLoginOtpController
   );
   fastify.post("/auth/logout", logoutController);
   fastify.get(
@@ -339,6 +348,13 @@ fastify.post(
   resetPasswordPasswordController
 )
 fastify.post(
+  "/two-factor",
+  {
+    preHandler: [requireDatabaseReady, requireAuthentication],
+  },
+  twoFactorSettingController
+)
+fastify.get(
   "/two-factor",
   {
     preHandler: [requireDatabaseReady, requireAuthentication],

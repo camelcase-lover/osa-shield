@@ -1,12 +1,11 @@
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
-import { ConfirmEmail, User } from "../config/db.js";
-import { sendConfirmEmail, sendResetPasswordMail } from "../data/emailSender.js";
+import { ConfirmEmail, Otp, Setting, User } from "../config/db.js";
+import { sendConfirmEmail, sendResetPasswordMail, sendOtpMail } from "../data/emailSender.js";
 import { ensureSessionLocation, getSessionLocationLabel } from "../services/sessionLocationService.js";
 import { getUserSummary } from "../services/userMetricsService.js";
 import dotenv from 'dotenv';
-import { redirect } from "react-router-dom";
-import { Op, where } from "sequelize";
+import { Op } from "sequelize";
 
 dotenv.config();
 
@@ -33,6 +32,7 @@ async function toPublicUser(user, request) {
   };
 }
 
+
 function buildConfirmLink(token) {
   const fallback = "http://localhost:8080/verification";
   const configured = process.env.CONFIRM_LINK?.trim() || fallback;
@@ -54,6 +54,10 @@ function buildConfirmLink(token) {
 
 function buildVerificationExpiryDate() {
   return new Date(Date.now() + VERIFICATION_TTL_MINUTES * 60 * 1000);
+}
+
+function loginCodeExpiryDate(){
+  return new Date(Date.now() + 5 * 60 * 1000);
 }
 
 async function createFreshVerificationToken(userId) {
@@ -80,6 +84,30 @@ async function createFreshVerificationToken(userId) {
   return token;
 }
 
+async function createFreshLoginOtp(userId) {
+  await Otp.update(
+    { used: true },
+    {
+      where: {
+        user_id: userId,
+        used: false,
+      },
+    }
+  );
+
+  const code = crypto.randomInt(100000, 999999).toString();
+  const expiresAt = loginCodeExpiryDate();
+
+  await Otp.create({
+    user_id: userId,
+    code,
+    expires_at: expiresAt,
+    used: false,
+  });
+
+  return code;
+}
+
 function queueConfirmationEmail(request, recipientEmail, confirmLink) {
   void sendConfirmEmail(recipientEmail, confirmLink).catch((error) => {
     if (request?.log?.error) {
@@ -91,6 +119,20 @@ function queueConfirmationEmail(request, recipientEmail, confirmLink) {
     }
 
     console.error("Failed to send confirmation email", error);
+  });
+}
+
+function queueLoginOtpEmail(request, recipientEmail, code) {
+  void sendOtpMail(recipientEmail, code).catch((error) => {
+    if (request?.log?.error) {
+      request.log.error(
+        { err: error, recipientEmail },
+        "Failed to send login OTP email"
+      );
+      return;
+    }
+
+    console.error("Failed to send login OTP email", error);
   });
 }
 
@@ -260,6 +302,74 @@ export const loginController = async (request, reply) => {
         });
       }
     }
+
+    const setting = await Setting.findOne({
+      where: { user_id: user.user_id },
+    });
+
+    if (setting?.is_2fa_enabled) {
+      if (!isEmailServiceConfigured()) {
+        return reply.code(500).send({
+          message: "Two-factor authentication is enabled but email service is not configured.",
+        });
+      }
+
+      const code = await createFreshLoginOtp(user.user_id);
+      queueLoginOtpEmail(request, user.email, code);
+
+      return reply.code(202).send({
+        message: "Two-factor code sent to your email.",
+        requiresTwoFactor: true,
+        email: user.email,
+      });
+    }
+
+    request.session.userId = user.user_id;
+    request.session.userRole = "user";
+    ensureSessionLocation(request);
+
+    return reply.code(200).send({
+      message: "Login successful",
+      user: await toPublicUser(user, request),
+    });
+  } catch (error) {
+    console.error(error);
+    return reply.code(500).send({ message: "Internal server error" });
+  }
+};
+
+export const verifyLoginOtpController = async (request, reply) => {
+  try {
+    const { email, code } = request.body ?? {};
+    const loginEmail = String(email ?? "").toLowerCase().trim();
+    const otpCode = String(code ?? "").trim();
+
+    if (!loginEmail || !otpCode) {
+      return reply.code(400).send({ message: "Email and OTP code are required" });
+    }
+
+    const user = await User.findOne({
+      where: { email: loginEmail },
+    });
+
+    if (!user) {
+      return reply.code(400).send({ message: "Invalid or expired OTP code" });
+    }
+
+    const otpRecord = await Otp.findOne({
+      where: {
+        user_id: user.user_id,
+        code: otpCode,
+        used: false,
+      },
+      order: [["created_at", "DESC"]],
+    });
+
+    if (!otpRecord || new Date(otpRecord.expires_at) < new Date()) {
+      return reply.code(400).send({ message: "Invalid or expired OTP code" });
+    }
+
+    await otpRecord.update({ used: true });
 
     request.session.userId = user.user_id;
     request.session.userRole = "user";

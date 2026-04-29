@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/Layout";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
+import LoginVerification from "@/pages/Login-verification";
 import RegisterPage from "@/pages/RegisterPage";
 import Verification from "@/pages/Verification";
 import DashboardPage from "@/pages/DashboardPage";
@@ -49,6 +50,7 @@ const App = () => {
             <Route element={<Layout />}>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/login-verification" element={<LoginVerification />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/verification" element={<Verification />} />
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

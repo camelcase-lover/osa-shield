@@ -1,17 +1,25 @@
-import { where } from "sequelize";
 import { Setting } from "../config/db.js";
-import UserModel from "../model/UserModel.js";
 
 export const twoFactorSettingController = async(request, reply) => {
     try {
-        const {userId} = request.params ?? {};
+        const userId = request.session?.userId;
 
-        const setting = await Setting.findOne({
-            where: {user_id: userId}
+        if (!userId) {
+            return reply.code(401).send({message: "Unauthorized"});
+        }
+
+        const [setting] = await Setting.findOrCreate({
+            where: {user_id: userId},
+            defaults: {
+                user_id: userId,
+                is_2fa_enabled: false,
+            },
         });
 
-        if(!setting){
-            return reply.code(404).send({message: "Who are you ?"});
+        if (request.method === "GET") {
+            return reply.code(200).send({
+                is_2fa_enabled: setting.is_2fa_enabled
+            });
         }
 
         setting.is_2fa_enabled = !setting.is_2fa_enabled;

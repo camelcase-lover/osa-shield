@@ -17,4 +17,10 @@ export async function ensureFeatureColumns(sequelize) {
   await sequelize.query(
     "CREATE INDEX IF NOT EXISTS idx_scams_source_scan_id ON scams(source_scan_id)"
   );
+  await sequelize.query(
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS is_2fa_enabled BOOLEAN NOT NULL DEFAULT false"
+  );
+  await sequelize.query(
+    "ALTER TABLE otp_login ADD COLUMN IF NOT EXISTS used BOOLEAN NOT NULL DEFAULT false"
+  );
 }
