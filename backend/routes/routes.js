@@ -35,6 +35,7 @@ import { createThreadController,
 import { request } from "node:http";
 import { urlCheck } from "../services/urlCheck.js";
 import { twoFactorSettingController } from "../controllers/settingsController.js";
+import { serverMessageController } from "../message/serverMessage.js";
 
 const DEFAULT_ALLOWED_ORIGINS = "http://localhost:8080,http://localhost:8081,http://localhost:5173";
 
@@ -118,7 +119,8 @@ export default async function routes(fastify) {
     "/resetPassword",
     "/checkPassword",
     "/urlCheck",
-    "/two-factor"
+    "/two-factor",
+    "/",
   ];
 
   for (const path of preflightPaths) {
@@ -175,6 +177,7 @@ fastify.post('/checkPassword', async (request, reply) => {
 });
 
   fastify.get("/health", healthController);
+  fastify.get("/", serverMessageController);
   fastify.post(
     "/auth/register",
     {
