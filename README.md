@@ -1,7 +1,7 @@
 ###Guide
-##To install packaged 
-
-###npm install --legacy-peer-deps
+##  Installation & Setup
+```bash
+npm install --legacy-peer-deps
 
 ###RUnn frontend 
 ##npm run dev
@@ -9,24 +9,30 @@
 ###Run backend
 ##npm run server
 
-.env 
+# --- Server Configuration ---
+PORT=5000
+SESSION_SECRET=your_secure_session_secret
+CORS_ORIGINS=http://localhost:5173
 
-PORT
-DATABASE_URL= combine db user, pass host and name
-DB_USER
-DB_PASSWORD
-DB_HOST
-DB_NAME
-CONFIRM_LINK
-CORS_ORIGINS
-EMAIL_USER
-EMAIL_PASS
-VITE_API_BASE_URL
-VERIFICATION_TTL_MINUTES
-SESSION_SECRET
-OSA_MODEL_API
+# --- Database Credentials ---
+# DATABASE_URL: Combine user, pass, host, and name 
+# Format: postgres://DB_USER:DB_PASSWORD@DB_HOST:5432/DB_NAME
+DATABASE_URL=
+DB_USER=
+DB_PASSWORD=
+DB_HOST=
+DB_NAME=
+
+# --- Email & Communication ---
+EMAIL_USER=
+EMAIL_PASS=
+EMAIL_SENDER_APT_KEY=
+EMAIL_API_URL=
+VERIFICATION_TTL_MINUTES=10
+
+# --- Network & Integration Links ---
+VITE_API_BASE_URL=http://localhost:5000
 CONFIRM_LINK=
-EMAIL_SENDER_APT_KEY
-EMAIL_API_URL
-RESET_LINK
-WEB_RISK_API
+RESET_LINK=
+OSA_MODEL_API=
+WEB_RISK_API=
