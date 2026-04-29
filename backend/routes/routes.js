@@ -33,6 +33,7 @@ import { createThreadController,
  } from "../controllers/threadController.js";
 import { request } from "node:http";
 import { urlCheck } from "../services/urlCheck.js";
+import { twoFactorSettingController } from "../controllers/settingsController.js";
 
 const DEFAULT_ALLOWED_ORIGINS = "http://localhost:8080,http://localhost:8081,http://localhost:5173";
 
@@ -114,7 +115,8 @@ export default async function routes(fastify) {
     "/send-reset-email",
     "/resetPassword",
     "/checkPassword",
-    "/urlCheck"
+    "/urlCheck",
+    "/two-factor"
   ];
 
   for (const path of preflightPaths) {
@@ -335,6 +337,13 @@ fastify.post(
     preHandler: [requireDatabaseReady]
   },
   resetPasswordPasswordController
+)
+fastify.post(
+  "/two-factor",
+  {
+    preHandler: [requireDatabaseReady, requireAuthentication],
+  },
+  twoFactorSettingController
 )
 
 };
