@@ -45,4 +45,26 @@ export async function ensureFeatureColumns(sequelize) {
   await sequelize.query(
     "ALTER TABLE otp_login ADD COLUMN IF NOT EXISTS used BOOLEAN NOT NULL DEFAULT false"
   );
+  await sequelize.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'otp_login_otp_id_fkey'
+          AND conrelid = 'otp_login'::regclass
+      ) THEN
+        ALTER TABLE otp_login DROP CONSTRAINT otp_login_otp_id_fkey;
+      END IF;
+    END $$;
+  `);
+  await sequelize.query(
+    "ALTER TABLE otp_login DROP CONSTRAINT IF EXISTS otp_login_user_id_fkey"
+  );
+  await sequelize.query(
+    "ALTER TABLE otp_login ADD CONSTRAINT otp_login_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE NOT VALID"
+  );
+  await sequelize.query(
+    "CREATE INDEX IF NOT EXISTS idx_otp_login_user_id ON otp_login(user_id)"
+  );
 }
