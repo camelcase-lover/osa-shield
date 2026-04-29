@@ -117,6 +117,13 @@ type UrlCheckResponse = {
   raw?: unknown;
 };
 
+type ScanNotice = {
+  tone: 'success' | 'warning' | 'error';
+  title: string;
+  message: string;
+  details?: string;
+};
+
 type DashboardUrlDetails = NonNullable<ScamAnalysisResponse['url_details']>;
 
 function cleanPasswordCheckMessage(result: PasswordCheckResponse) {
@@ -274,6 +281,7 @@ export default function DashboardPage() {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<ScamAnalysisResponse | null>(null);
+  const [scanNotice, setScanNotice] = useState<ScanNotice | null>(null);
   const [lastAnalyzedTab, setLastAnalyzedTab] = useState<'text' | 'url' | 'password' >('text');
 
   useEffect(() => {
@@ -290,6 +298,7 @@ export default function DashboardPage() {
 
     setIsAnalyzing(true);
     setResult(null);
+    setScanNotice(null);
     setLastAnalyzedTab(activeAnalyzerTab);
 
     try {
@@ -303,6 +312,11 @@ export default function DashboardPage() {
         const analysis = buildPasswordAnalysis(pwnedResult);
 
         setResult(analysis);
+        setScanNotice({
+          tone: pwnedResult.breached ? 'warning' : 'success',
+          title: pwnedResult.breached ? 'Password breach found' : 'No known password breach found',
+          message: description,
+        });
 
         if (pwnedResult.breached) {
           toast.warning('Password breach found', {
@@ -328,6 +342,12 @@ export default function DashboardPage() {
         const analysis = buildUrlCheckAnalysis(urlCheckResult, urlToCheck);
 
         setResult(analysis);
+        setScanNotice({
+          tone: analysis.is_scam ? 'warning' : 'success',
+          title: analysis.is_scam ? 'Threat detected by URL check' : 'URL check completed',
+          message: analysis.verdict_summary,
+          details: analysis.explanation,
+        });
         await checkSession();
 
         if (analysis.is_scam) {
@@ -348,6 +368,14 @@ export default function DashboardPage() {
       });
 
       setResult(analysis);
+      setScanNotice({
+        tone: analysis.is_scam ? 'warning' : 'success',
+        title: analysis.is_scam ? 'Threat detected' : 'Analysis completed',
+        message: analysis.is_scam
+          ? 'The scan is private until you post it from your profile.'
+          : 'No strong scam signal was found in this message.',
+        details: analysis.explanation || analysis.verdict_summary,
+      });
       await checkSession();
 
       if (analysis.is_scam) {
@@ -356,7 +384,13 @@ export default function DashboardPage() {
         toast.success('Analysis completed.');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Analysis failed.');
+      const message = error instanceof Error ? error.message : 'Analysis failed.';
+      setScanNotice({
+        tone: 'error',
+        title: 'Analysis failed',
+        message,
+      });
+      toast.error(message);
     } finally {
       setIsAnalyzing(false);
     }
@@ -367,6 +401,14 @@ export default function DashboardPage() {
   const recommendations = result ? buildRecommendations(result, analyzedTab) : [];
   const tone = result ? resultTone(result) : null;
   const ToneIcon = tone?.icon ?? Shield;
+  const NoticeIcon =
+    scanNotice?.tone === 'success' ? CheckCircle : scanNotice?.tone === 'error' ? AlertTriangle : ShieldAlert;
+  const noticeClassName =
+    scanNotice?.tone === 'success'
+      ? 'border-success/30 bg-success/10 text-success'
+      : scanNotice?.tone === 'error'
+      ? 'border-destructive/30 bg-destructive/10 text-destructive'
+      : 'border-warning/30 bg-warning/10 text-warning';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -467,6 +509,21 @@ export default function DashboardPage() {
               : 'Message analysis checks for scam patterns and summarizes the strongest signals in a readable verdict.'}
           </p>
         </div>
+
+        {scanNotice && (
+          <div className={`mt-5 rounded-xl border p-4 ${noticeClassName}`}>
+            <div className="flex items-start gap-3">
+              <NoticeIcon className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="min-w-0">
+                <div className="font-semibold text-foreground">{scanNotice.title}</div>
+                <p className="mt-1 text-sm leading-6 text-foreground/85">{scanNotice.message}</p>
+                {scanNotice.details && (
+                  <p className="mt-2 text-sm leading-6 text-foreground/75">{scanNotice.details}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {result && tone && (
