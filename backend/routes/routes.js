@@ -39,7 +39,6 @@ import { createThreadController,
   updateThreadController
  } from "../controllers/threadController.js";
 import { request } from "node:http";
-import { urlCheck } from "../services/urlCheck.js";
 import { twoFactorSettingController } from "../controllers/settingsController.js";
 import { serverMessageController } from "../message/serverMessage.js";
 
