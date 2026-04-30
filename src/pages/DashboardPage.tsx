@@ -409,9 +409,9 @@ export default function DashboardPage() {
       : 'border-warning/30 bg-warning/10 text-warning';
   const inlineTitle = analysisError
     ? 'Analysis'
-    : result
-    ? result.verdict_title
-    : '';
+    : result?.verdict_title || '';
+    // ? result.verdict_title
+    // : '';
   const inlineMessage = analysisError
     ? analysisError
     : result
