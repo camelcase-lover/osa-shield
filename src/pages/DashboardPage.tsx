@@ -328,9 +328,15 @@ export default function DashboardPage() {
       
       
       if(result?.is_scam || (result && result.risk_level === 'high')){
-        toast.warning(result.verdict_title || 'Threat detected. The scan is private until you post it from your profile.');
+        toast.warning(result.verdict_title, {
+          description: analysis.verdict_summary,
+          duration: 5000,
+        });
       }else {
-        toast.success(result?.verdict_title || 'Analysis completed.');
+        toast.success(result?.verdict_title, {
+          description: analysis.verdict_summary,
+          duration: 4000,
+        });
       }
 
       await checkSession();
