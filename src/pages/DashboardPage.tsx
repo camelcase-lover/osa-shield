@@ -408,7 +408,7 @@ export default function DashboardPage() {
       ? 'border-destructive/30 bg-destructive/10 text-destructive'
       : 'border-warning/30 bg-warning/10 text-warning';
   const inlineTitle = analysisError
-    ? 'Analysis failed'
+    ? 'Analysis'
     : result
     ? result.verdict_title
     : '';
