@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { apiFetch, type ScamAnalysisResponse } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useUIStore } from '@/stores/uiStore';
+import { url } from 'inspector';
 
 
 function scoreColor(score: number) {
@@ -303,8 +304,10 @@ export default function DashboardPage() {
       } else if (activeAnalyzerTab == 'url'){
         const urlToCheck = normalizeUrlForCheck(input);
         const urlCheckResult = await apiFetch<UrlCheckResponse>(
-          `/urlCheck?url=${encodeURIComponent(urlToCheck)}`,
-          {method: 'GET'}
+          '/urlCheck',
+          {method: 'POST',
+           body: JSON.stringify({url: urlToCheck}) 
+          }
         );
 
         const analysis = buildUrlCheckAnalysis(urlCheckResult, urlToCheck);
@@ -318,10 +321,11 @@ export default function DashboardPage() {
             content: input.trim(),
           }),
         });
+        setResult(analysis);
         
       }
 
-      setResult(analysis);
+      
       
       if(result?.is_scam || (result && result.risk_level === 'high')){
         toast.warning(result.verdict_title || 'Threat detected. The scan is private until you post it from your profile.');
