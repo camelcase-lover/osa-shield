@@ -19,7 +19,7 @@ export default function RegisterPage() {
     e.preventDefault();
     if (password !== confirm) { toast.error('Passwords do not match.'); return; }
 
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{12,}$/;
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,7 +32,7 @@ export default function RegisterPage() {
       return toast.error("Please provide valid email address");
     }
     if(password && !strongPasswordRegex.test(password) ){ 
-      toast.error("Password must be at least 12 characters and include uppercase, lowercase, numbers, and special characters.");
+      toast.error("Password must be at least 8 characters and include uppercase, lowercase, numbers, and special characters.");
       return;
       }
       
