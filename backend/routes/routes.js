@@ -136,53 +136,53 @@ export default async function routes(fastify) {
     });
   }
 
-fastify.post("/urlCheck", async(request, reply) => {
-  try {
-    const {url} = request.body;
-    if(!url){
-      return reply.code(400).send({
-        message: "Required"
-      });
-    }
+// fastify.post("/urlCheck", async(request, reply) => {
+//   try {
+//     const {url} = request.body;
+//     if(!url){
+//       return reply.code(400).send({
+//         message: "Required"
+//       });
+//     }
 
-    const analysisResult = await analyzeUrlThreat(url);
+//     const analysisResult = await analyzeUrlThreat(url);
 
-    return reply.code(200).send({analysisResult});
+//     return reply.code(200).send({analysisResult});
 
-  } catch (error) {
-    console.log("Url analysis error", error);
-    return reply.code(500).send({
-      message: "Internal server error",
-    });
-  }
-});
-
-// fastify.post("/urlCheck", async (request, reply) => {
-//   const { url } = request.body;
-//   const client = createClient();
-//   await client.connect();
-//   const URL_SET = "phish:urls";
-//   const DOMAIN_SET = "phish:domains";
-
-//   const norm = normalize(url);
-//   if (!norm) {
-//     return reply.code(400).send({ error: "Invalid URL" });
+//   } catch (error) {
+//     console.log("Url analysis error", error);
+//     return reply.code(500).send({
+//       message: "Internal server error",
+//     });
 //   }
-
-//   const urlHash = hash(norm.full);
-
-//   // check exact match
-//   if (await client.sIsMember(URL_SET, urlHash)) {
-//     return { safe: false, reason: "exact_match" };
-//   }
-
-//   // check domain match
-//   if (await client.sIsMember(DOMAIN_SET, norm.domain)) {
-//     return { safe: false, reason: "domain_match" };
-//   }
-
-//   return { safe: true };
 // });
+
+fastify.post("/urlCheck", async (request, reply) => {
+  const { url } = request.body;
+  const client = createClient();
+  await client.connect();
+  const URL_SET = "phish:urls";
+  const DOMAIN_SET = "phish:domains";
+
+  const norm = normalize(url);
+  if (!norm) {
+    return reply.code(400).send({ error: "Invalid URL" });
+  }
+
+  const urlHash = hash(norm.full);
+
+  // check exact match
+  if (await client.sIsMember(URL_SET, urlHash)) {
+    return { safe: false, reason: "exact_match" };
+  }
+
+  // check domain match
+  if (await client.sIsMember(DOMAIN_SET, norm.domain)) {
+    return { safe: false, reason: "domain_match" };
+  }
+
+  return { safe: true };
+});
 
 fastify.post('/checkPassword', async (request, reply) => {
     try {
